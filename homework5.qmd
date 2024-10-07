@@ -90,7 +90,7 @@ These grades are related with the course subject, Math or Portuguese:
 
 ```{r}
 library(tidyverse)
-
+library(psych)
 ```
 
 ## Read and Modify Data
@@ -116,35 +116,36 @@ por_data <- read_csv2(file = "student-por.csv")
 all_data <- inner_join(mat_data,por_data,by=c("school","sex","age","address","famsize","Pstatus","Medu","Fedu","Mjob","Fjob","reason","nursery","internet"))
 ```
 
-There is a warning announced, referencing a many-to-many relationship between x and y. Trying again, joining on all variables except `G1`,`G2`,`G3`,`paid`,`absences`. Will use this result for all further exercises.
+There is a warning announced, referencing a many-to-many relationship between x and y. Trying again, joining on all variables except `G1`,`G2`,`G3`,`paid`,`absences`. Will use this result for all further exercises. Rather than listing all 28 desired vars for join, manually, I will first join on a selection of the two tables without the noted five fields. Then, I will join this result with the original mat and por data to get the additional fields, adjusting the names to include the course type as a suffix (G1 -> G1.mat, G1.por, etc.).
 
 ```{r}
+#join the subset first
 all_data <- inner_join(
-  mat_data,
-  por_data,
-  by=join_by(school,sex,age,address,famsize,Pstatus,Medu,Fedu,Mjob,Fjob,reason,guardian,traveltime,studytime,failures,schoolsup,famsup,activities,nursery,higher,internet,romantic,famrel,freetime,goout,Dalc,Walc,health)
-)
-all_data
-```
-
-```{r}
-#########################################################TEMP
-test_data <- inner_join(
   select(mat_data,-c(G1,G2,G3,paid,absences)),
   select(por_data,-c(G1,G2,G3,paid,absences))
-)
+  )
 
-test_data2 <- left_join(
-  test_data,
-  mat_data
-)
+#add in the missing fields from mat and rename
+all_data <- 
+  left_join(
+    all_data,
+    mat_data
+    ) |>
+  rename_with(~ paste(.x,".mat",sep=""),
+              .cols = c(G1,G2,G3,paid,absences)
+  )
 
-test_data3 <- left_join(
-  test_data2,
-  por_data
-)
+#similar activity for fields from por
+all_data <- 
+  left_join(
+    all_data,
+    por_data
+    ) |>
+  rename_with(~ paste(.x,".por",sep=""),
+              .cols = c(G1,G2,G3,paid,absences)
+  )
+
 ```
-
 
 ### Factoring Vars of Interest
 
@@ -212,13 +213,55 @@ por_data <-
 
 ## Summarize Data with Basic EDA
 
-### Quick Common Sense Review
+### Data Review
 
 First, we will look at the data and evaluate whether it makes basic sense. We will also look for missing or malformed values, etc.
+
+#### Structures, types, values
 
 ```{r}
 str(all_data)
 ```
-Looking at results of a structure `str()` function, the field names and their values look reasonable. They match the descriptions of the data dictionary.
 
-However, I am concerned that there are only 320 records in the combined data, while both math and portuguese datasets had record volumes exceeding this amount (395, 649, respectively). Thinking through our join methodology, since we joined 
+Looking at results of a structure `str()` function, the field names and their values look reasonable. They match the descriptions of the data dictionary. However, we need to adjust the numeric and categorical field types, as many of these fields have a numeric type currently but are truly categorical in nature. To be efficient, I will try to adjust *all* numeric fields *except* those I specify, to be coerced to character strings.
+
+```{r}
+all_data <- 
+  all_data |>
+  mutate(across(
+           where(is.numeric)
+           & !ends_with(".mat")
+           & !ends_with(".por")
+           & -failures,
+           as.character #transform from numeric to char
+           )
+         )
+```
+
+#### Prior data transforms
+
+I am concerned that there are only 320 records in the combined data, while both math and portuguese datasets had record volumes exceeding this amount (395, 649, respectively). Thinking through our join methodology, since we used an inner join, this gives us only the students who had data in both courses. That's not a bad approach and is even necessary for some analyses, so this is acceptable.
+
+#### Numeric summary
+
+I'll run psych::describe() to get a sense of the values and their centers, spread, to ensure that looks reasonable. Only the numeric ones.
+
+```{r}
+describe(select(all_data,is.numeric))
+```
+
+These all look reasonable for their representations of failed classes, number of absences, and grades.
+
+#### Missing values
+
+Let's check for any NA, though I see the original datasets used here were very clean.
+
+```{r}
+colSums(is.na(all_data))
+```
+
+All clean, no missing values in any field.
+
+### EDA for Categorical Vars
+
+
