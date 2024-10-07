@@ -91,6 +91,7 @@ These grades are related with the course subject, Math or Portuguese:
 ```{r}
 library(tidyverse)
 library(psych)
+library(GGally)
 ```
 
 ## Read and Modify Data
@@ -438,40 +439,16 @@ cor(all_data[sapply(all_data,is.numeric)])
 
 #### Histogram, Kernel Density, Boxplot
 
-I will create these for the numeric variables `absences.mat` and `G3.mat`, for categorical variable `freetime`.
+I will create these for the numeric variables `absences.mat` and `G3.mat`, for categorical variable `freetime`. 
+
+First, the charts for `absences.mat`, beginning with the kernel density function. I'll display all three types and then interpret briefly.
 
 ```{r}
-#c + geom_histogram(binwidth = 5)
-#x, y, alpha, color, fill, linetype, size, weight 
-g <- ggplot(all_data,
-            aes(x=Pstatus,
-                fill=romantic
-                )
-            )
-g + 
-  geom_bar(position="stack") +
-  labs(
-    x="Cohabitation Status of Parents",
-    y="Count of Students",
-    fill="Student Romance",
-    title = "Cohabitation State of Parents & Student Romance Status")
+g_G3.mat <- ggplot(all_data,
+                         aes(x=absences.mat)
+                         )
 
-g2 <- ggplot(all_data,
-              aes(x=absences.mat,
-                  fill=G3.mat)
-              )
-
-g2 + 
-  geom_histogram(binwidth=3)
-```
-
-```{r}
-#c + geom_density(kernel = "gaussian")
-g3 <- ggplot(all_data,
-              aes(x=absences.mat)
-)
-
-g3 + 
+g_G3.mat + 
   geom_density(
     kernel="gaussian",
     alpha=0.5,
@@ -479,6 +456,268 @@ g3 +
       fill=freetime
       )
     ) +
-  labs
+  labs(
+    title="Density of Students by Math Absences and Freetime",
+    x="Math Absences",
+    y="Population Density",
+    fill="Freetime"
+  )
+```
+
+Next, histogram:
+
+```{r}
+g_G3.mat +
+  geom_histogram(
+    aes(
+      fill=freetime
+    ),
+    binwidth=2,
+    position="identity",
+    alpha=0.65
+  ) +
+    labs(
+    title="Histogram of Students by Math Absences and Freetime",
+    x="Math Absences",
+    y="Count of Students",
+    fill="Freetime"
+  )
+```
+
+And the boxplot:
+
+```{r}
+g_G3.mat +
+  geom_boxplot(
+    aes(
+      x = absences.mat,
+      fill=freetime)
+  ) +
+    labs(
+    title="Boxplot of Math Absences by Freetime",
+    x="Math Absences",
+    fill="Freetime"
+  ) +
+  theme(axis.text.y = element_blank())
+```
+
+Looking at the three charts for this data, I find the histogram (as displayed) to be hard to read and interpret. The boxplot is great and shows, unexpectedly, the greater IQR for Math absences by students with lots of free time. The density chart shows this, too. It's hard to take any further interpretation from this as the differences are small and the charts could use tweaking for better clarity.
+
+Now, the charts for `G3.mat`. Again, I'll display all three types and then interpret briefly.
+
+```{r}
+g_G3.mat <- ggplot(all_data,
+                         aes(x=G3.mat)
+                         )
+
+g_G3.mat + 
+  geom_density(
+    kernel="gaussian",
+    alpha=0.5,
+    aes(
+      fill=freetime
+      )
+    ) +
+  labs(
+    title="Density of Students by Math Final and Freetime",
+    x="Math Final",
+    y="Population Density",
+    fill="Freetime"
+  )
+```
+
+Next, histogram:
+
+```{r}
+g_G3.mat +
+  geom_histogram(
+    aes(
+      fill=freetime
+    ),
+    binwidth=2,
+    position="identity",
+    alpha=0.65
+  ) +
+    labs(
+    title="Histogram of Students by Math Final and Freetime",
+    x="Math Final",
+    y="Count of Students",
+    fill="Freetime"
+  )
+```
+
+And the boxplot:
+
+```{r}
+g_G3.mat +
+  geom_boxplot(
+    aes(
+      x = G3.mat,
+      fill=freetime)
+  ) +
+    labs(
+    title="Boxplot of Math Final by Freetime",
+    x="Math Final",
+    fill="Freetime"
+  ) +
+  theme(axis.text.y = element_blank())
+```
+
+These results present a similar experience for interpretation. The histogram is harder to read, while the box and density plots show a clear positive trend between the more free time and the final math grade of the students.
+
+#### Scatterplots
+
+Next, two scatterplots, one to compare G2 and G3 for math, the other to compare G3.mat with absences in language. I expect the first one to be strongly positively correlated and the second to be fairly strongly negatively correlated. I'll color the points according to categorical variables `Pstatus` and `freetime`.
+
+```{r}
+g_G3.mat +
+  geom_point(
+    aes(
+      x=G2.mat,
+      y=G3.mat,
+      color=Pstatus),
+    position = "jitter"
+  ) +
+    labs(
+    title="Scatter of Math Final by Math First Grade by Parental Cohabitation",
+    x="Math First Grade",
+    y="Math Final Grade",
+    color="Parents Cohabitation Status"
+  )
+```
+Above, the strong correlation is clear; it is likely that the first math grade of the session grows as does the final math grade. Also, the cohabitation status coloring shows no clear difference between the states of apart / together.
+
+```{r}
+g_G3.mat +
+  geom_point(
+    aes(
+      x=absences.por,
+      y=G3.mat,
+      shape=freetime,color=freetime
+      ),
+    position = "jitter"
+  ) +
+    labs(
+      title="Scatter of Math Final by Language Absences by Student Freetime",
+      x="Absences in Language",
+      y="Math Final Grade",
+      color="Student Freetime",
+      shape="Student Freetime"
+  )
+```
+This is very hard to read! Generally, it looks like the two numeric variables are negatively correlated, slightly. As for the relation of freetime with these, it's too hard to see here. Even increasing the jitter would not make it much cleaner. There might be ways to group the data points to make fewer appear.
+
+#### Scatterplots with Faceting
+
+Last, let's repeat these with faceting graphs, first at each setting of another cat variable, and then at each combination of two cat variables.
+
+```{r}
+g_G3.mat +
+  geom_point(
+    aes(
+      x=G2.mat,
+      y=G3.mat,
+      color=Pstatus),
+    position = "jitter"
+  ) +
+    labs(
+    title="Scatter of Math Final by Math First Grade by Parental Cohabitation",
+    subtitle="Faceted by Family Relationship Strength",
+    x="Math First Grade",
+    y="Math Final Grade",
+    color="Parents Cohabitation Status"
+  ) +
+  facet_wrap(~ famrel)
+```
+
+That is *so much better*! The faceted charts here clearly suggest minimal impact of the Family Relationship Strength on the other variables. I love that `ggplot2` ensures consistency of axes across facets, natively.
+
+```{r}
+g_G3.mat +
+  geom_point(
+    aes(
+      x=absences.por,
+      y=G3.mat,
+      shape=freetime,color=freetime
+      ),
+    position = "jitter"
+  ) +
+    labs(
+      title="Scatter of Math Final by Language Absences by Student Freetime",
+      x="Absences in Language",
+      y="Math Final Grade",
+      color="Student Freetime",
+      shape="Student Freetime"
+  ) +
+  facet_wrap(~ romantic)
+```
+
+This is hard to read, again, so I'm going to switch faceting to the freetime dimension:
+
+```{r}
+g_G3.mat +
+  geom_point(
+    aes(
+      x=absences.por,
+      y=G3.mat,
+      shape=romantic,color=romantic
+      ),
+    position = "jitter"
+  ) +
+    labs(
+      title="Scatter of Math Final by Language Absences by Romantic Status",
+      subtitle="Faceted by Freetime Levels",
+      x="Absences in Language",
+      y="Math Final Grade",
+      color="Romantic Status",
+      shape="Romantic Status"
+  ) +
+  facet_wrap(~ freetime)
+```
+
+Better, again, as a display. Hard still to interpret, even so. At a glance, I can't tell any strong relationship here between freetime and either numeric variable. It would require more study to understand the strength of any correlation between freetime and romance.
+
+Lastly, we'll combine these at combinations of *two* categorical variables.
+
+```{r}
+g_G3.mat +
+  geom_point(
+    aes(
+      x=G2.mat,
+      y=G3.mat,
+      color=Pstatus),
+    position = "jitter"
+  ) +
+    labs(
+    title="Scatter of Math Final by Math First Grade by Parental Cohabitation",
+    subtitle="Faceted by Family Relationship Strength & Romantic Status",
+    x="Math First Grade",
+    y="Math Final Grade",
+    color="Parents Cohabitation Status"
+  ) +
+  facet_grid(~ famrel ~ romantic)
+```
+
+Too much info! Or just no clear relationships to interpret. Actually, no, I *do* see that *no romance* tends to offer some of the highest scores in the range, both in first and also final math grades. But that would have been easier to identify without the noise of the additional variables here!
+
+```{r}
+g_G3.mat +
+  geom_point(
+    aes(
+      x=absences.por,
+      y=G3.mat,
+      shape=romantic,color=romantic
+      ),
+    position = "jitter"
+  ) +
+    labs(
+      title="Scatter of Math Final by Language Absences by Romantic Status",
+      subtitle="Faceted by Freetime Levels and Parental Cohabitation Status",
+      x="Absences in Language",
+      y="Math Final Grade",
+      color="Romantic Status",
+      shape="Romantic Status"
+  ) +
+  facet_grid(~ freetime ~ Pstatus)
 ```
 
