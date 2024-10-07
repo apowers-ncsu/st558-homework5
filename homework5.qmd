@@ -264,4 +264,83 @@ All clean, no missing values in any field.
 
 ### EDA for Categorical Vars
 
+#### 1,2,3-Way Contingency Tables
+
+These are easy to create using `table()` so there isn't much preamble needed. Interpretation afterward. These are built with BaseR.
+
+```{r}
+table(all_data['Pstatus'])
+```
+This one-way contingency table simply tells us that most of the studied students' parents lived together (289) while a smaller count did not (31). The numbers are basic counts of each element of the field Pstatus.
+
+```{r}
+table(all_data[c('Pstatus','romantic')])
+```
+This two-way table shows the split of the prior table by the romance / no romance values. Of the 31 students whose parents lived separately, 13 students were in a romantic relationship. That's interesting, as a percentage of the total, because the share of romance / no romance is much closer for the *apart* group than the share for the *together* group.
+
+```{r}
+table(all_data[c('Pstatus','romantic','famrel')])
+
+```
+
+The three-way contingency table with a 5-element field is much harder to interpret. Looking at the *1-very bad* relationship group, 2 students have separated parents and are in a romantic relationship. While the volumes for the *1-very bad* group are low, it is the only level of family relationship where the total romance-active students exceeds that of no-romance students.
+
+#### Conditional 2-Way Table
+
+First, creating this via `table()` and a filter.
+
+```{r}
+table_cond_2way_a <- filter(all_data,famrel=="1-very bad")
+table(table_cond_2way_a[c('Pstatus','romantic')])
+```
+This looks like our sample above, reflecting only the counts of the filtered student data.
+
+Creating this another way, I'll make the 3-way table and then subset it:
+
+```{r}
+table_cond_2way <- table(all_data[c('Pstatus','romantic','famrel')])
+table_cond_2way[,,1]
+```
+Looks good.
+
+#### 2-Way Contingency Table with dplyr
+
+I will make these using `group_by()` and `summarize()` to test other methods.
+
+```{r}
+table_dplyr <- 
+  all_data |>
+  group_by(Pstatus,romantic) |>
+  summarize(count = n())
+table_dplyr
+```
+
+The values match but the display format does not. `pivot_wider` will adjust this to mimic the prior result from BaseR, the typical display for a contingency table.
+
+```{r}
+table_dplyr <- pivot_wider(table_dplyr,names_from = "romantic",values_from = "count")
+table_dplyr
+```
+
+Matches the original display of `table()`.
+
+#### Graphs
+
+Now, using `ggplot2` I will display a stacked bar graph and side-by-side variant of the same. Good labels for the axes and a title, too.
+
+```{r}
+g <- ggplot(all_data,
+            aes(
+              x=Pstatus,
+              fill=romantic
+              )
+            )
+g + 
+  geom_bar(position="stack") +
+  labs(
+    x="Cohabitation Status of Parents",
+    y="Count of Students",
+    fill="Student Romance",
+    title = "Cohabitation State of Parents & Student Romance Status")
+```
 
