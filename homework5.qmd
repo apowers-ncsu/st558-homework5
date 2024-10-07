@@ -232,7 +232,7 @@ all_data <-
            where(is.numeric)
            & !ends_with(".mat")
            & !ends_with(".por")
-           & -failures,
+           & -c(failures,age),
            as.character #transform from numeric to char
            )
          )
@@ -324,16 +324,15 @@ table_dplyr
 
 Matches the original display of `table()`.
 
-#### Graphs
+#### Bar Graphs
 
 Now, using `ggplot2` I will display a stacked bar graph and side-by-side variant of the same. Good labels for the axes and a title, too.
 
 ```{r}
 g <- ggplot(all_data,
-            aes(
-              x=Pstatus,
-              fill=romantic
-              )
+            aes(x=Pstatus,
+                fill=romantic
+                )
             )
 g + 
   geom_bar(position="stack") +
@@ -342,5 +341,144 @@ g +
     y="Count of Students",
     fill="Student Romance",
     title = "Cohabitation State of Parents & Student Romance Status")
+```
+
+```{r}
+g + 
+  geom_bar(position="dodge") +
+  labs(
+    x="Cohabitation Status of Parents",
+    y="Count of Students",
+    fill="Student Romance",
+    title = "Cohabitation State of Parents & Student Romance Status") 
+
+```
+### EDA for Numeric Vars and Groups
+
+#### Center & Spread for 3 Vars
+
+First, calculating basic measures of center and spread for three vars:
+
+```{r}
+all_data |>
+  select(age,G3.mat,G3.por) |>
+  summarize(across(everything(),
+                   list("mean"=mean,
+                        "median"=median,
+                        "sd"=sd,
+                        "IQR"=IQR),
+                   .names="{.col}-{.fn}"
+                   )
+            )
+```
+Looking at `age`, we know most students are about 16, +/- 1. Now, let's see the summary results for these students when we only assess those with a romantic relationship.
+
+```{r}
+all_data |>
+  filter(romantic=="romance") |>
+  select(age,G3.mat,G3.por) |>
+  summarize(across(everything(),
+                   list("mean"=mean,
+                        "median"=median,
+                        "sd"=sd,
+                        "IQR"=IQR),
+                   .names="{.col}-{.fn}"
+                   )
+            )
+```
+This result shows higher typical ages for students in a romantic relationship, along with noticeably lower final math grades but comparable language grades.
+
+#### By a Single Grouping Variable
+
+Now, let's compare these results for both of the romance states of students.
+
+```{r}
+all_data |>
+  group_by(romantic) |>
+  select(age,G3.mat,absences.mat) |>
+  summarize(across(everything(),
+                   list("mean"=mean,
+                        "median"=median,
+                        "sd"=sd,
+                        "IQR"=IQR),
+                   .names="{.col}-{.fn}"
+                   )
+            )
+```
+
+There are higher numbers of absences associated with those students in romantic relationships, though with a much larger spread (and a smaller sample size).
+
+#### By 2 Grouping Variables
+
+Now, let's group additionally by `famrel`.
+
+```{r}
+all_data |>
+  group_by(romantic,famrel) |>
+  select(age,G3.mat,G3.por) |>
+  summarize(across(everything(),
+                   list("mean"=mean,
+                        "median"=median,
+                        "sd"=sd,
+                        "IQR"=IQR),
+                   .names="{.col}-{.fn}"
+                   )
+            )
+```
+
+Well, with one of my variables having 5 levels, this output is hard to read. Further, I wish strongly that I could add in the count of students in each grouping but I can't figure out how. With the levels of `famrel` ordered as factors, we can see a lightly-apparent trend that `age` is positively correlated to quality of family relationships.
+
+#### Correlation Matrix for All Numerics
+
+This may be hard to read, but now we will make a correlation matrix for all numeric variables. I don't recall this being in the lesson, but I reviewed how to use cor() to do this.
+
+```{r}
+cor(all_data[sapply(all_data,is.numeric)]) 
+```
+
+#### Histogram, Kernel Density, Boxplot
+
+I will create these for the numeric variables `absences.mat` and `G3.mat`, for categorical variable `freetime`.
+
+```{r}
+#c + geom_histogram(binwidth = 5)
+#x, y, alpha, color, fill, linetype, size, weight 
+g <- ggplot(all_data,
+            aes(x=Pstatus,
+                fill=romantic
+                )
+            )
+g + 
+  geom_bar(position="stack") +
+  labs(
+    x="Cohabitation Status of Parents",
+    y="Count of Students",
+    fill="Student Romance",
+    title = "Cohabitation State of Parents & Student Romance Status")
+
+g2 <- ggplot(all_data,
+              aes(x=absences.mat,
+                  fill=G3.mat)
+              )
+
+g2 + 
+  geom_histogram(binwidth=3)
+```
+
+```{r}
+#c + geom_density(kernel = "gaussian")
+g3 <- ggplot(all_data,
+              aes(x=absences.mat)
+)
+
+g3 + 
+  geom_density(
+    kernel="gaussian",
+    alpha=0.5,
+    aes(
+      fill=freetime
+      )
+    ) +
+  labs
 ```
 
