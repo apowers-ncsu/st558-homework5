@@ -721,3 +721,4 @@ g_G3.mat +
   facet_grid(~ freetime ~ Pstatus)
 ```
 
+Easy, as before, to see little relationship between the two numeric variables. Looking at parental cohabitation, there is no clear takeaway for me. I don't see anything telling for any comparison of the variables shown here, but I also must acknowledge the small sample size in the *apart* group which precludes strong interpretations there, regardless.
